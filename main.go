@@ -90,7 +90,7 @@ func (article Article) Link() string {
 
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. 获取 URL 参数
-	id := getRouteVariable("id", r)
+	id := route.GetRouteVariable("id", r)
 
 	// 2. 读取对应的文章数据
 	article, err := getArticleByID(id)
@@ -270,7 +270,7 @@ func createTables() {
 
 func articlesEditHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. 获取 URL 参数
-	id := getRouteVariable("id", r)
+	id := route.GetRouteVariable("id", r)
 	// 2. 读取对应的文章数据
 	article, err := getArticleByID(id)
 	// 3. 如果出现错误
@@ -299,7 +299,7 @@ func articlesEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id := getRouteVariable("id", r)
+	id := route.GetRouteVariable("id", r)
 
 	// 读取对应的文章
 	_, err := getArticleByID(id)
@@ -374,11 +374,6 @@ func validateArticleFormData(title, body string) map[string]string {
 	return errors
 }
 
-func getRouteVariable(parameterName string, r *http.Request) string {
-	vars := mux.Vars(r)
-	return vars[parameterName]
-}
-
 func getArticleByID(id string) (Article, error) {
 	article := Article{}
 	query := "SELECT * FROM articles WHERE id=?"
@@ -389,7 +384,7 @@ func getArticleByID(id string) (Article, error) {
 }
 
 func articlesDELETEHandler(w http.ResponseWriter, r *http.Request) {
-	id := getRouteVariable("id", r)
+	id := route.GetRouteVariable("id", r)
 	article, err := getArticleByID(id)
 
 	if err != nil {
