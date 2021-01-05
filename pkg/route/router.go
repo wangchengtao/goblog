@@ -15,7 +15,7 @@ func Name2URL(routeName string, pairs ...string) string {
 	url, err := Router.Get(routeName).URL(pairs...)
 
 	if err != nil {
-		//checkError(err)
+		//logger.LogError(err)
 		return ""
 	}
 	return url.String()
