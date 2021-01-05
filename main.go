@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"goblog/pkg/database"
 	"goblog/pkg/logger"
-	"goblog/pkg/route"
+	"goblog/pkg/routes"
 	"goblog/pkg/types"
 	"html/template"
 	"net/http"
@@ -20,15 +20,6 @@ import (
 
 var router *mux.Router
 var db *sql.DB
-
-func defaultHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "<h1>Hello, 这里是 goblog !</h1>")
-}
-
-func aboutHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "此博客是用以记录编程笔记，如您有反馈或建议，请联系 "+
-		"<a href=\"mailto:summer@example.com\">summer@example.com</a>")
-}
 
 type Article struct {
 	Title, Body string
@@ -59,7 +50,7 @@ func (article Article) Link() string {
 
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. 获取 URL 参数
-	id := route.GetRouteVariable("id", r)
+	id := routes.GetRouteVariable("id", r)
 
 	// 2. 读取对应的文章数据
 	article, err := getArticleByID(id)
@@ -79,7 +70,7 @@ func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// 4. 读取成功
 		tmpl, err := template.New("show.gohtml").Funcs(template.FuncMap{
-			"RouteName2URL": route.Name2URL,
+			"RouteName2URL": routes.Name2URL,
 			"Int64ToString": types.Int64ToString,
 		}).ParseFiles("resources/views/articles/show.gohtml")
 
@@ -180,11 +171,6 @@ func saveArticleToDB(title, body string) (int64, error) {
 	return 0, nil
 }
 
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
-	fmt.Fprint(w, "<h1>请求页面未找到 :(</h1><p>如有疑惑，请联系我们。</p>")
-}
-
 func forceHtmlMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 1. 设置标头
@@ -221,20 +207,9 @@ func articlesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, data)
 }
 
-func createTables() {
-	createArticlesSQL := `CREATE TABLE IF NOT EXISTS articles(
-    id bigint(20) PRIMARY KEY AUTO_INCREMENT NOT NULL,
-    title varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-    body longtext COLLATE utf8mb4_unicode_ci
-); `
-
-	_, err := db.Exec(createArticlesSQL)
-	logger.LogError(err)
-}
-
 func articlesEditHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. 获取 URL 参数
-	id := route.GetRouteVariable("id", r)
+	id := routes.GetRouteVariable("id", r)
 	// 2. 读取对应的文章数据
 	article, err := getArticleByID(id)
 	// 3. 如果出现错误
@@ -263,7 +238,7 @@ func articlesEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func articlesUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id := route.GetRouteVariable("id", r)
+	id := routes.GetRouteVariable("id", r)
 
 	// 读取对应的文章
 	_, err := getArticleByID(id)
@@ -348,7 +323,7 @@ func getArticleByID(id string) (Article, error) {
 }
 
 func articlesDELETEHandler(w http.ResponseWriter, r *http.Request) {
-	id := route.GetRouteVariable("id", r)
+	id := routes.GetRouteVariable("id", r)
 	article, err := getArticleByID(id)
 
 	if err != nil {
@@ -386,11 +361,9 @@ func main() {
 	database.Initialize()
 	db = database.DB
 
-	route.Initialize()
-	router = route.Router
+	routes.Initialize()
+	router = routes.Router
 
-	router.HandleFunc("/", defaultHandler).Methods("GET").Name("home")
-	router.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
 	router.HandleFunc("/articles/{id:[0-9]+}", articlesShowHandler).Methods("GET").Name("articles.show")
 	router.HandleFunc("/articles", articlesIndexHandler).Methods("GET").Name("articles.index")
 	router.HandleFunc("/articles", articlesStoreHandler).Methods("POST").Name("articles.store")
@@ -398,8 +371,6 @@ func main() {
 	router.HandleFunc("/articles/{id:[0-9]+}/edit", articlesEditHandler).Methods("GET").Name("articles.edit")
 	router.HandleFunc("/articles/{id:[0-9]+}", articlesUpdateHandler).Methods("POST").Name("articles.update")
 	router.HandleFunc("/articles/{id:[0-9]+}/delete", articlesDELETEHandler).Methods("POST").Name("articles.delete")
-
-	router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 	router.Use(forceHtmlMiddleware)
 

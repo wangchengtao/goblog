@@ -1,4 +1,4 @@
-package route
+package routes
 
 import (
 	"github.com/gorilla/mux"
@@ -9,6 +9,7 @@ var Router *mux.Router
 
 func Initialize() {
 	Router = mux.NewRouter()
+	RegisterWebRoutes(Router)
 }
 
 func Name2URL(routeName string, pairs ...string) string {
