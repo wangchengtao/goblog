@@ -7,7 +7,6 @@ import (
 	"goblog/pkg/route"
 	"goblog/pkg/view"
 	"gorm.io/gorm"
-	"html/template"
 	"net/http"
 	"unicode/utf8"
 )
@@ -35,7 +34,7 @@ func (*ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "500 服务器内部错误")
 		}
 	} else {
-		view.Render(w, "articles.show", article)
+		view.Render(w, article, "articles.show")
 	}
 }
 
@@ -49,14 +48,14 @@ func (*ArticlesController) Index(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "500 服务器内部错误")
 	} else {
-		view.Render(w, "articles.index", articles)
+		view.Render(w, articles, "articles.index")
 	}
 }
 
 // ArticlesFormData 创建博文表单数据
 type ArticlesFormData struct {
 	Title, Body string
-	URL         string
+	Article     article.Article
 	Errors      map[string]string
 }
 
@@ -99,39 +98,22 @@ func (*ArticlesController) Store(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "500 服务器内部错误")
 		}
 	} else {
-
-		storeURL := route.Name2URL("articles.store")
-
-		data := ArticlesFormData{
+		view.Render(w, ArticlesFormData{
 			Title:  title,
 			Body:   body,
-			URL:    storeURL,
 			Errors: errors,
-		}
-		tmpl, err := template.ParseFiles("resources/views/articles/create.gohtml")
-
-		logger.LogError(err)
-
-		tmpl.Execute(w, data)
+		}, "articles.create", "articles._form_field")
 	}
 }
 
 func (*ArticlesController) Create(w http.ResponseWriter, r *http.Request) {
-	storeUrl := route.Name2URL("articles.store")
-
 	data := ArticlesFormData{
 		Title:  "",
 		Body:   "",
-		URL:    storeUrl,
 		Errors: nil,
 	}
 
-	tmpl, err := template.ParseFiles("resources/views/articles/create.gohtml")
-	if err != nil {
-		panic(err)
-	}
-
-	tmpl.Execute(w, data)
+	view.Render(w, data, "articles.create")
 }
 
 func (*ArticlesController) Edit(w http.ResponseWriter, r *http.Request) {
@@ -150,17 +132,14 @@ func (*ArticlesController) Edit(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "服务器内部错误")
 		}
 	} else {
-		updateURL := route.Name2URL("articles.update", "id", id)
 		data := ArticlesFormData{
-			Title:  article.Title,
-			Body:   article.Body,
-			URL:    updateURL,
-			Errors: nil,
+			Title:   article.Title,
+			Body:    article.Body,
+			Article: article,
+			Errors:  nil,
 		}
 
-		tmpl, err := template.ParseFiles("resources/views/articles/edit.gohtml")
-		logger.LogError(err)
-		tmpl.Execute(w, data)
+		view.Render(w, data, "articles.edit", "articles._form_field")
 	}
 }
 
@@ -208,17 +187,13 @@ func (*ArticlesController) Update(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, "您没有做任何修改")
 			}
 		} else {
-			updateURL := route.Name2URL("articles.update", "id", id)
-			data := ArticlesFormData{
-				Title:  title,
-				Body:   body,
-				URL:    updateURL,
-				Errors: errors,
-			}
-			tmpl, err := template.ParseFiles("resources/views/articles/edit.gohtml")
-			logger.LogError(err)
-
-			tmpl.Execute(w, data)
+			// 4.3 表单验证不通过，显示理由
+			view.Render(w, ArticlesFormData{
+				Title:   title,
+				Body:    body,
+				Article: _article,
+				Errors:  errors,
+			}, "articles.edit", "articles._form_field")
 		}
 	}
 }
